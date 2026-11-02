@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Exercise Training Science & AI Laboratory (ETSA Lab), Catholic Kwandong University. PI: Jun-Hyun Bae, Ph.D.">
+<style>:root{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>ETSA Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,500;125,800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: lab "telemetry console" — a live signal strip as hero, then instrument-panel sections on a cool grid */
+:root{
+  --bg:#F2F5F7; --surface:#FFFFFF; --ink:#0D1B26; --muted:#56687A; --line:#D3DCE3;
+  --accent:#0A7899; --signal:#C9662A; --grid:rgba(10,120,153,.08);
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A131A; --surface:#101C25; --ink:#E4EDF2; --muted:#8FA3B2; --line:#22343F;
+  --accent:#4CC4E5; --signal:#F0A35E; --grid:rgba(76,196,229,.07); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A131A; --surface:#101C25; --ink:#E4EDF2; --muted:#8FA3B2; --line:#22343F;
+  --accent:#4CC4E5; --signal:#F0A35E; --grid:rgba(76,196,229,.07); color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.65 var(--f-body);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+/* nav */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:24px;height:56px}
+.brand{font:800 1.05rem/1 var(--f-display);font-stretch:125%;color:var(--ink);text-decoration:none;letter-spacing:.02em}
+.brand span{color:var(--accent)}
+nav ul{display:flex;gap:20px;list-style:none;margin:0 0 0 auto;padding:0;overflow-x:auto}
+nav ul a{font-family:var(--f-mono);font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-decoration:none;white-space:nowrap}
+nav ul a:hover{color:var(--ink)}
+@media (max-width:720px){nav ul{display:none}}
+
+/* hero */
+.hero{padding-block:56px 40px}
+.hero h1{font:800 clamp(2.2rem,6.4vw,4.6rem)/.98 var(--f-display);font-stretch:125%;letter-spacing:-.01em;margin:14px 0 0;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero .kr{font-size:1.05rem;color:var(--muted);margin:14px 0 0}
+.hero .thesis{max-width:62ch;font-size:1.12rem;margin:22px 0 0}
+.monitor{margin-top:36px;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.monitor-head{display:flex;flex-wrap:wrap;gap:8px 28px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.readout{display:flex;align-items:baseline;gap:8px}
+.readout b{font:600 1.35rem/1 var(--f-mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.readout b.sig{color:var(--signal)}
+.monitor canvas{display:block;width:100%;height:220px;cursor:crosshair;touch-action:pan-y}
+.monitor-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 16px;border-top:1px solid var(--line)}
+.monitor-ctl label b{color:var(--ink);font-weight:600}
+.monitor-ctl input{flex:1 1 160px;min-width:0;accent-color:var(--accent)}
+.monitor-ctl button{font:400 .74rem/1 var(--f-mono);padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--muted);cursor:pointer}
+.monitor-ctl button[aria-pressed="true"]{border-color:var(--signal);color:var(--signal)}
+.monitor-foot{padding:8px 16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* sections */
+section{padding-block:64px;border-top:1px solid var(--line)}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.sec-head h2{font:800 clamp(1.6rem,3.4vw,2.3rem)/1.1 var(--f-display);font-stretch:112%;margin:0;text-wrap:balance}
+
+/* research */
+.areas{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.area{background:var(--surface);padding:22px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.area h3{font:600 1.08rem/1.35 var(--f-body);margin:0}
+.area p{margin:0;color:var(--muted);font-size:.95rem}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:8px}
+.tag{font:400 .72rem/1 var(--f-mono);padding:5px 7px;border:1px solid var(--line);border-radius:3px;color:var(--muted)}
+
+
+/* projects */
+.projects{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+@media (max-width:400px){.projects{grid-template-columns:1fr}}
+.proj{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.proj-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.proj h3{font:600 1.05rem/1.35 var(--f-body);margin:0;text-wrap:balance}
+.proj p{margin:0;color:var(--muted);font-size:.93rem}
+.stage{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.stage i{height:4px;border-radius:2px;background:var(--line)}
+.stage i.on{background:var(--accent)}
+.stage-l{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:-6px}
+.stage-l span{font:400 .64rem/1.2 var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.stage-l span.now{color:var(--accent);font-weight:600}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px;border:1px dashed var(--line);border-radius:4px;margin-top:auto}
+.flow span{font:400 .72rem/1.3 var(--f-mono);padding:5px 7px;border:1px solid var(--line);border-radius:3px;background:var(--bg)}
+.flow span.src{border-color:var(--accent);color:var(--accent)}
+.flow span.out{border-color:var(--signal);color:var(--signal)}
+.flow b{font:400 .8rem/1 var(--f-mono);color:var(--muted)}
+.note{margin-top:20px;font-size:.85rem;color:var(--muted)}
+
+
+.ill{border:1px dashed var(--line);border-radius:4px;background:var(--bg)}
+.ill svg{display:block;width:100%;height:auto}
+.ill .s{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ill .m{stroke:var(--muted)} .ill .a{stroke:var(--accent)} .ill .g{stroke:var(--signal)}
+.ill .d{stroke-dasharray:4 4}
+.ill .fa{fill:var(--accent)} .ill .fg{fill:var(--signal)} .ill .fm{fill:var(--muted)}
+.ill text{font-family:var(--f-mono);font-size:9px;fill:var(--muted);letter-spacing:.03em}
+.ill text.big{font-size:13px;font-weight:600;fill:var(--signal)}
+
+/* PI */
+.pi{display:grid;grid-template-columns:200px 1fr;gap:40px}
+@media (max-width:760px){.pi{grid-template-columns:1fr}}
+.pi img{width:200px;max-width:100%;aspect-ratio:187/241;object-fit:cover;border-radius:4px;border:1px solid var(--line);filter:grayscale(.15)}
+.pi h3{font:800 1.7rem/1.1 var(--f-display);font-stretch:112%;margin:0}
+.pi .role{color:var(--muted);margin:6px 0 18px}
+.links{display:flex;flex-wrap:wrap;gap:10px 20px;margin-bottom:28px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.tl{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:12px}
+.tl li{display:grid;grid-template-columns:92px 1fr;gap:12px;min-width:0}
+.tl .yr{font:400 .8rem/1.6 var(--f-mono);color:var(--accent);font-variant-numeric:tabular-nums}
+.tl .what{font-size:.94rem;min-width:0}
+.tl .what small{display:block;color:var(--muted);font-size:.85rem}
+
+/* output strip */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);background:var(--surface)}
+@media (max-width:760px){.metrics{grid-template-columns:repeat(2,1fr)}}
+.metric{padding:18px;border-right:1px solid var(--line)}
+.metric:last-child{border-right:0}
+.metric b{display:block;font:600 2rem/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.metric span{font-size:.85rem;color:var(--muted)}
+
+/* publications */
+.chart{margin:28px 0;background:var(--surface);border:1px solid var(--line);padding:16px 16px 8px;border-radius:6px}
+.bars{display:grid;grid-template-columns:repeat(9,1fr);gap:8px;align-items:end;height:130px}
+.bar{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%}
+.bar i{display:block;width:100%;max-width:40px;background:var(--accent);opacity:.35;border-radius:2px 2px 0 0;transition:opacity .15s}
+.bar:hover i,.bar[aria-pressed="true"] i{opacity:1}
+.bar em{font:600 .75rem/1 var(--f-mono);font-style:normal;font-variant-numeric:tabular-nums}
+.bar-x{display:grid;grid-template-columns:repeat(9,1fr);gap:8px;margin-top:6px;text-align:center}
+.bar-x span{font:400 .7rem/1 var(--f-mono);color:var(--muted)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.tools input{flex:1 1 220px;min-width:0;font:inherit;font-size:.95rem;padding:9px 12px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
+.tools button{font:400 .78rem/1 var(--f-mono);padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--muted);cursor:pointer}
+.tools button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.pubs{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.pubs li{display:grid;grid-template-columns:56px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.pubs .y{font:400 .8rem/1.7 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.pubs .t{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.pubs .m{font-size:.86rem;color:var(--muted);overflow-wrap:anywhere}
+.pubs .lead{font:600 .66rem/1 var(--f-mono);color:var(--signal);border:1px solid currentColor;border-radius:3px;padding:2px 5px;margin-left:6px;vertical-align:2px}
+.count{margin-left:auto}
+.tools button.reset{border-color:var(--signal);color:var(--signal)}
+
+/* funding/service */
+.ledger{display:grid;gap:0;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:120px 1fr auto;gap:16px;padding:14px 0;border-bottom:1px solid var(--line);align-items:baseline}
+@media (max-width:620px){.row{grid-template-columns:1fr}}
+.row .k{font:400 .78rem/1.6 var(--f-mono);color:var(--accent)}
+.row .v{min-width:0}
+.row .v small{display:block;color:var(--muted);font-size:.86rem}
+.row .n{font:600 .9rem/1.6 var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* join */
+.join{display:grid;grid-template-columns:1.2fr 1fr;gap:40px}
+@media (max-width:760px){.join{grid-template-columns:1fr}}
+.join p{max-width:60ch}
+.contact{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;display:grid;gap:14px;align-content:start}
+.contact div{min-width:0;overflow-wrap:anywhere}
+.copy{font:400 .72rem/1 var(--f-mono);padding:6px 8px;margin-left:8px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:3px;cursor:pointer}
+footer{border-top:1px solid var(--line);padding-block:28px}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="brand" href="#top">ETSA<span>.</span>LAB</a>
+  <ul>
+    <li><a href="#research">Research</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#pi">PI</a></li>
+    <li><a href="#publications">Publications</a></li>
+    <li><a href="#funding">Funding</a></li>
+    <li><a href="#join">Join</a></li>
+  </ul>
+</div></nav>
+
+<header class="hero" id="top"><div class="wrap">
+  <div class="mono">Catholic Kwandong University · Division of Sports Rehabilitation Medicine</div>
+  <h1>Exercise Training Science <em>&amp;&nbsp;AI</em> Laboratory</h1>
+  <p class="kr">운동트레이닝과학·AI 연구실</p>
+  <p class="thesis">We turn physiological signals into training decisions. Wearable streams, cardiopulmonary tests, national fitness records and muscle biology, modeled with machine learning so that exercise can be prescribed, monitored and adapted for athletes and aging populations alike.</p>
+
+  <div class="monitor" aria-label="Interactive fitness–fatigue training model">
+    <div class="monitor-head">
+      <div class="readout"><span class="mono">Day</span><b id="dDay">0</b></div>
+      <div class="readout"><span class="mono">Load</span><b id="dLoad">0</b><span class="mono">TRIMP</span></div>
+      <div class="readout"><span class="mono" style="color:var(--accent)">● Fitness</span><b id="dFit">0</b></div>
+      <div class="readout"><span class="mono" style="color:var(--muted)">● Fatigue</span><b id="dFat">0</b></div>
+      <div class="readout"><span class="mono" style="color:var(--signal)">● Form</span><b class="sig" id="dForm">0</b></div>
+    </div>
+    <canvas id="ffm" height="220"></canvas>
+    <div class="monitor-ctl">
+      <label for="vol" class="mono">Training volume <b id="volv">100%</b></label>
+      <input id="vol" type="range" min="60" max="140" step="5" value="100">
+      <button id="taper" type="button" aria-pressed="true">Taper · last 14 days</button>
+    </div>
+    <div class="monitor-foot"><span class="mono">Performance = k₁·Fitness − k₂·Fatigue · τ₁ 42 d · τ₂ 7 d</span><span class="mono" id="peak">Peak form</span></div>
+  </div>
+</div></header>
+
+<section id="research"><div class="wrap">
+  <div class="sec-head"><span class="mono">01 / Research</span><h2>What we model</h2></div>
+  <div class="areas">
+    <article class="area">
+      <span class="mono">Population fitness</span>
+      <h3>Deep learning on national fitness data</h3>
+      <p>Prediction of sarcopenic obesity, grip strength and obesity risk from Korean National Fitness Award records collected since 2009.</p>
+      <div class="tags"><span class="tag">Sarcopenic obesity</span><span class="tag">Neural networks</span><span class="tag">Patent</span></div>
+    </article>
+    <article class="area">
+      <span class="mono">Wearables</span>
+      <h3>Wearable physiological monitoring</h3>
+      <p>HRV, ECG and accelerometry pipelines with explainable models for physical activity prediction and frailty screening.</p>
+      <div class="tags"><span class="tag">HRV</span><span class="tag">ECG</span><span class="tag">XAI</span><span class="tag">Frailty</span></div>
+    </article>
+    <article class="area">
+      <span class="mono">Cardiopulmonary</span>
+      <h3>Machine learning for CPET</h3>
+      <p>Estimating peak oxygen uptake and oxygen-pulse behavior from treadmill testing, separating instrument effects from true effort.</p>
+      <div class="tags"><span class="tag">VO₂peak</span><span class="tag">O₂ pulse</span><span class="tag">Open registries</span></div>
+    </article>
+    <article class="area">
+      <span class="mono">Molecular</span>
+      <h3>Exercise and muscle biology</h3>
+      <p>How training protects skeletal muscle and cognition under chemotherapy, aging and metabolic disease, from myokines to mitochondria.</p>
+      <div class="tags"><span class="tag">Muscle atrophy</span><span class="tag">Myokines</span><span class="tag">AMPK</span></div>
+    </article>
+  </div>
+</div></section>
+
+<section id="projects"><div class="wrap">
+  <div class="sec-head"><span class="mono">02 / Ongoing projects</span><h2>What we are working on</h2></div>
+  <div class="projects">
+    <article class="proj">
+      <div class="ill"><svg viewBox="0 0 320 140" role="img" aria-label="Illustration: frailty study"><defs><marker id="ah1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8Z" class="fm"/></marker></defs><path class="s m" d="M20 120H70V100H110V80H150V60H190"/>
+<circle class="s" cx="125" cy="42" r="6"/><path class="s" d="M125 48V66M125 66L119 80M125 66L136 72M125 52L117 62M125 52L133 60"/>
+<rect x="121" y="52" width="8" height="3" class="fa"/>
+<polyline class="s g" points="200,40 214,40 218,34 221,46 224,20 227,50 230,40 250,40 254,34 257,46 260,20 263,50 266,40 300,40"/>
+<text x="200" y="64">HR · ACC (Polar H10)</text>
+<path class="s m" d="M245 72V92" marker-end="url(#ah1)"/>
+<rect x="228" y="104" width="12" height="16" class="fa" opacity=".35"/><rect x="246" y="96" width="12" height="24" class="fa" opacity=".6"/><rect x="264" y="86" width="12" height="34" class="fa"/>
+<text x="222" y="134">est. max load</text><text x="20" y="134">stair climb</text></svg></div>
+      <div class="proj-top"><span class="mono">Wearables · Frailty</span></div>
+      <h3>Wearable signals for exercise capacity in frail older adults</h3>
+      <p>Do submaximal stair-climb heart rate and accelerometry add to clinical tests when estimating maximal ergometer load after open-heart surgery? Built as a reproducibility and multiverse analysis.</p>
+      <div class="stage" aria-label="Stage: Analysis"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i></div>
+      <div class="stage-l"><span class="">Design</span><span class="">Data</span><span class="now">Analysis</span><span class="">Manuscript</span></div>
+      <div class="flow" aria-label="Analysis pipeline"><span class="src">PhysioNet frailty dataset</span> <b>→</b> <span>Polar H10 ECG + ACC</span> <b>→</b> <span>HR & activity features</span> <b>→</b> <span>Multiverse models</span> <b>→</b> <span class="out">Max load estimate</span></div>
+    </article>
+    <article class="proj">
+      <div class="ill"><svg viewBox="0 0 320 140" role="img" aria-label="Illustration: gait study"><defs><marker id="ah2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8Z" class="fm"/></marker></defs><path class="s m" d="M10 110H310"/><path class="s m d" d="M20 104H86"/><text x="20" y="96">flying start</text>
+<path class="s a" d="M90 60V110M250 60V110"/><rect x="86" y="58" width="8" height="8" class="fa"/><rect x="246" y="58" width="8" height="8" class="fa"/>
+<text x="84" y="126">0 m</text><text x="244" y="126">4 m</text>
+<circle class="s" cx="160" cy="62" r="6"/><path class="s" d="M160 68V88M160 88L152 110M160 88L168 110M160 72L152 84M160 72L169 82"/>
+<path class="s m" d="M178 78H204" marker-end="url(#ah2)"/>
+<text x="196" y="30" class="big">1.0 m/s</text><text x="196" y="44">AWGS cut-off</text></svg></div>
+      <div class="proj-top"><span class="mono">Device validation · Sarcopenia</span></div>
+      <h3>Machine-learning calibration of a gait speedometer</h3>
+      <p>Linear versus machine-learning calibration of an automated gait speed device in older adults, tested for agreement, AWGS 1.0 m/s classification and auto-trigger failure detection.</p>
+      <div class="stage" aria-label="Stage: Manuscript"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+      <div class="stage-l"><span class="">Design</span><span class="">Data</span><span class="">Analysis</span><span class="now">Manuscript</span></div>
+      <div class="flow" aria-label="Analysis pipeline"><span class="src">Gait speedometer</span> <b>→</b> <span>Standing / flying start</span> <b>→</b> <span>Linear vs ML calibration</span> <b>→</b> <span>Agreement analysis</span> <b>→</b> <span class="out">AWGS classification</span></div>
+    </article>
+    <article class="proj">
+      <div class="ill"><svg viewBox="0 0 320 140" role="img" aria-label="Illustration: survey study"><defs><marker id="ah3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8Z" class="fm"/></marker></defs><rect class="s m" x="16" y="16" width="104" height="24" rx="3"/><text x="24" y="31">Strength training</text>
+<rect class="s m" x="16" y="56" width="104" height="24" rx="3"/><text x="24" y="71">Sitting time</text>
+<rect class="s m" x="16" y="96" width="104" height="24" rx="3"/><text x="24" y="111">Sleep</text>
+<path class="s m" d="M120 28L218 64" marker-end="url(#ah3)"/><path class="s m" d="M120 68H218" marker-end="url(#ah3)"/><path class="s m" d="M120 108L218 72" marker-end="url(#ah3)"/>
+<rect class="s g" x="220" y="56" width="84" height="24" rx="3"/><text x="230" y="72" class="big" style="font-size:11px">PHQ-4</text>
+<rect class="s a" x="150" y="104" width="64" height="22" rx="3"/><text x="160" y="119">Obesity</text>
+<path class="s a" d="M182 104V74"/><circle cx="182" cy="70" r="3" class="fa"/></svg></div>
+      <div class="proj-top"><span class="mono">Population health</span></div>
+      <h3>Muscle-strengthening activity, distress and obesity</h3>
+      <p>How muscle-strengthening activity, sitting time and sleep relate to psychological distress (PHQ-4) in US adults, and whether obesity modifies those links. A second study examines physical activity guidelines in cancer survivors.</p>
+      <div class="stage" aria-label="Stage: Manuscript"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+      <div class="stage-l"><span class="">Design</span><span class="">Data</span><span class="">Analysis</span><span class="now">Manuscript</span></div>
+      <div class="flow" aria-label="Analysis pipeline"><span class="src">HINTS 7 national survey</span> <b>→</b> <span>Survey-weighted models</span> <b>→</b> <span>Effect modification</span> <b>→</b> <span class="out">Obesity × PHQ-4</span></div>
+    </article>
+    <article class="proj">
+      <div class="ill"><svg viewBox="0 0 320 140" role="img" aria-label="Illustration: cohort study"><path class="s m" d="M30 110H300"/>
+<circle cx="40" cy="110" r="3" class="fm"/><text x="33" y="126">W1</text><circle cx="88" cy="110" r="3" class="fm"/><text x="81" y="126">W2</text><circle cx="136" cy="110" r="3" class="fm"/><text x="129" y="126">W3</text><circle cx="184" cy="110" r="3" class="fm"/><text x="177" y="126">W4</text><circle cx="232" cy="110" r="3" class="fm"/><text x="225" y="126">W5</text><circle cx="280" cy="110" r="3" class="fm"/><text x="273" y="126">W6</text>
+<path d="M88 18L93 23L88 28L83 23Z" class="fa"/><path d="M184 18L189 23L184 28L179 23Z" class="fa"/><path d="M280 18L285 23L280 28L275 23Z" class="fa"/><text x="8" y="26">DXA</text>
+<polyline class="s g" points="40,92 88,86 136,80 184,70 232,62"/><path class="s g d" d="M232 62L280 46"/>
+<polyline class="s a" points="40,50 88,54 136,60 184,66 232,74"/><path class="s a d" d="M232 74L280 86"/>
+<text x="236" y="40" style="fill:var(--signal)">frailty risk</text><text x="240" y="100" style="fill:var(--accent)">gait speed</text></svg></div>
+      <div class="proj-top"><span class="mono">Cohort · Aging</span></div>
+      <h3>AI trajectories of frailty and sarcopenia</h3>
+      <p>Longitudinal modeling across six waves of the Korean Frailty and Aging Cohort, using repeated gait speed and DXA body composition to predict frailty and sarcopenia trajectories.</p>
+      <div class="stage" aria-label="Stage: Design"><i class="on"></i><i class=""></i><i class=""></i><i class=""></i></div>
+      <div class="stage-l"><span class="now">Design</span><span class="">Data</span><span class="">Analysis</span><span class="">Manuscript</span></div>
+      <div class="flow" aria-label="Analysis pipeline"><span class="src">KFACS 6 waves</span> <b>→</b> <span>Gait speed + DXA</span> <b>→</b> <span>Sequence models</span> <b>→</b> <span class="out">Risk trajectories</span></div>
+    </article>
+    <article class="proj">
+      <div class="ill"><svg viewBox="0 0 320 140" role="img" aria-label="Illustration: photo study"><defs><marker id="ah5" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8Z" class="fm"/></marker></defs><rect class="s m" x="40" y="10" width="70" height="120" rx="10"/>
+<circle class="s" cx="75" cy="34" r="7"/><path class="s" d="M64 44H86L88 80H62ZM68 80L66 112M82 80L84 112M64 46L56 72M86 46L94 72"/>
+<rect class="s a d" x="57" y="40" width="36" height="46"/>
+<path class="s m" d="M118 70H162" marker-end="url(#ah5)"/>
+<rect class="s m" x="170" y="40" width="10" height="60"/><rect class="s m" x="186" y="50" width="10" height="40"/><rect class="s m" x="202" y="58" width="10" height="24"/>
+<path class="s m" d="M216 70H238" marker-end="url(#ah5)"/><text x="168" y="118">CNN</text>
+<path class="s m" d="M246 96A26 26 0 0 1 298 96"/><path class="s g" d="M272 96L286 76"/><circle cx="272" cy="96" r="3" class="fg"/>
+<text x="256" y="114" class="big">%BF</text></svg></div>
+      <div class="proj-top"><span class="mono">Computer vision · Body composition</span></div>
+      <h3>Smartphone photos to body fat percentage</h3>
+      <p>A measurement-protocol study estimating InBody body fat percentage from standardized torso photographs, with BMI as the comparison baseline and tape and skinfold measures added.</p>
+      <div class="stage" aria-label="Stage: Data"><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div>
+      <div class="stage-l"><span class="">Design</span><span class="now">Data</span><span class="">Analysis</span><span class="">Manuscript</span></div>
+      <div class="flow" aria-label="Analysis pipeline"><span class="src">Smartphone photos</span> <b>→</b> <span>Torso crop</span> <b>→</b> <span>CNN regression</span> <b>→</b> <span class="out">Body fat %</span></div>
+    </article>
+    <article class="proj">
+      <div class="ill"><svg viewBox="0 0 320 140" role="img" aria-label="Illustration: wheelchair study"><circle class="s" cx="90" cy="90" r="34"/><circle class="s" cx="90" cy="90" r="4"/><circle class="s" cx="150" cy="116" r="8"/>
+<path class="s" d="M90 90H130L150 108M80 60H130M80 60L74 24H64M130 60V90"/>
+<circle cx="90" cy="56" r="3.5" class="fa"/><circle cx="124" cy="90" r="3.5" class="fa"/>
+<path class="s a" d="M162 50A12 12 0 0 0 162 30M170 56A20 20 0 0 0 170 24"/>
+<rect class="s a" x="200" y="24" width="96" height="62" rx="4"/>
+<polyline class="s g" points="210,74 230,56 250,64 270,40 286,46"/>
+<path class="s m" d="M248 86V100M232 100H264"/><text x="222" y="120">simulator</text></svg></div>
+      <div class="proj-top"><span class="mono">Rehabilitation technology</span></div>
+      <h3>Sensor-based smart wheelchair training</h3>
+      <p>A randomized pilot and feasibility trial of a sensor-instrumented wheelchair training platform, alongside a usability evaluation of a wheelchair driving simulator.</p>
+      <div class="stage" aria-label="Stage: Manuscript"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+      <div class="stage-l"><span class="">Design</span><span class="">Data</span><span class="">Analysis</span><span class="now">Manuscript</span></div>
+      <div class="flow" aria-label="Analysis pipeline"><span class="src">Instrumented wheelchair</span> <b>→</b> <span>Training simulator</span> <b>→</b> <span>Feasibility & usability</span> <b>→</b> <span class="out">Rehab outcomes</span></div>
+    </article>
+  </div>
+  <p class="note">Results are shared here after peer-reviewed publication.</p>
+</div></section>
+
+<section id="pi"><div class="wrap">
+  <div class="sec-head"><span class="mono">03 / Principal investigator</span><h2>Jun-Hyun Bae, Ph.D.</h2></div>
+  <div class="pi">
+    <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICRINDQoOFRIWFhUSFBQXGiEcFxgfGRQUHScdHyIjJSUlFhwpLCgkKyEkJST/2wBDAQYGBgkICREJCREkGBQYJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCT/wAARCADxALsDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAoozWZrmvaZ4csXvtWvYbO2TgvIcZPYAdz7DmgDS3VBc3SWkDzSsFRFJJJAH5mvnL4i/tStFItr4SQRFW3vcTqH3jHCgdvfPIrxrxv8AGrxj45ia21PVHW0ZtxtbdRHHkdMgdfxJpXKUT6k1X9orwnol7Fb3qXgjlAdJo03KyHowBwce2M+mayvE37Uvg/SYozo8VxrUzOVZEzCqrjOcsMnk4xj19s/HEl3LOQZZHkOMZYk9OBS7+Ovtmpux8qPs3wh+034U8RyiDVIp9EmLbVMzCSM8ZzuHQcdSMeteq6Xrena5bC50y9t7yE/xwuGH6V+cEc7CTKkjjHHeug8NeONe8GX6XujX09nKhzwcqw9CDwR6g0XYcqP0NBFLXyd4J/am1+yvNniS2i1Czc/ejGyRPXB7j2NfTHhjxTpfi3SoNT0q486CZQ4BGGXkjBHbkGqTuS4tGzRQKKYgooooAKKKKACiiigAooooAKKKKACiig9KAILq4jtYXmlYKiKWJJA4HJ618RfGf4tX3xA8QOYmkg0y1Jit7cN09XP+0ePyAr079p/4nXdvcjwfprSwIqpLczI5XzMgkJx1A4zz17cV8xyHcxHqeaTKiuohcsTjnd1zzTViLHH61LbxM5LY4rd0fw3dapOscMTkE8sBnFQ5Jas1jBydkZEGntJnPGOpP6VHLavC+09K9t8O/DYiJFcI4B5V84b1BzxVXxD8LnjJkhiRVC7gBzk9v/rVCqJs2lQklc8cU+Wc8AHp1qyr5G4bCffrXZ3fwyvEg84K7FR83H8q5278P3VgxVoiBnh9vH68U1NMh0pJXKGA5BwQfauy+G3xL1X4e6wt3bMJYyQJIHxiRO4z1HtXJPbOnBIJ7jH/ANaomRl5UZPtVGbXQ/Qnwj4jt/Fvhyw1q2wqXcQkKA52N3XPscitqvjb4BfFT/hCdcXTtQYtpt+yRM7ykLbnP3wDxjnn2r7FilSVFeNg6MAwZTkEeoPerTuZSjZklFFFMQUUUUAFFFFABRRRQAUUUUAFIxCqSegpazfEV0bLQdSuVxmG1lkGTjkIT/SgD4V+K/iO58UeOdY1C4k3j7Q8cQ7LGp2qB7YH8/WuOhgMj9MZ7/zrTmH2iWSSQ7iz5J+pyf61d0TR5tTlMdupKqeWx1PYf41Emkrs3hFt2Q7w9pLX0qose7ac4A6nOB/KvdvCXheLT7SONI03H7xx1P41zPw58Jt5jGSLAQ/MfU5/+t/OvZNNslyoUAba4qs+Z2R6tCmoR13F07SEt0BKD8sYq41hDKPmiQ/hWmtuNgBx06CgRY6Vm4talcye5h3OlQGLb5I546VyHiDwNZXqOyWwDEHJAxn616UyAjDDg1RvIFC4HQ0nfctNdT5z1nwFJC7BY846def61wur6PNp0m7aQpOCD2P419R6hpyyBjtBNeceM/DC3NtM0agNjIGO46U6ddp2ZnWoRlG6PFLbLSY6seR9a+4Pgv4s/wCEu8BafcSMDc2y/ZZsf3lGAfxGDXxA0Rgdo2HzqT/n9K+o/wBlO5D+H9ah3ElbmOQjsMqR+fy816CPImtD3eiiitDEKKKKACiiigAooooAKKKKACsPxu5TwbrjDGRYT8np/q2rcqnq1st7pl3auius0LxsrdCCCMUAfnnLCTlegJycd/8AOa9g+GPh+FtJEuCpY9cDJ9f/AK1edW+jS3WqNYRjMglMZx7Egn2r3Lw3ax6Rp0VuuMIuCR3PeuPESSVkeng6d3zHTaHp0NpGVjUfMck/of5Vt2o2SYHT2rI064Thdwz356V0NpArsrDBH+fxrnjFvU7JTSdi1E5XgnB/z61JuyM1I0KbACcetIttk4WtuVoz5luV5CDwCTVC4ZgSD+FajWqoTv6+gqrePbpGWYgADmolBstTSMWdQRz1rntTtVlV1YAhgQQa1b/WLGF2QTAmsm5u45xujYMrjjBz/wDWrCUGjSMkz538V6e1jr9zBjAVsj6c/wCNfQX7J8DDS/EFxk+W00EajtkKxP8A6EK86+JXh6G4gGpxIBKh2uR3H+TXr37L1gbXwNeXDKB9ovWZT6gKoH65r0KE+ZXR5OKpuDPZaKM0V0HGFFFFABRRRQAUUUUAFFFFACHpWF4o8TQ+HLMSyQmeaQ7Y4gwXcfcnoPzrdPSuI8fRq+oaeWGVVXb8QKipJxjdG2HpqpUUWfNvh9FvfHWqXK25gUyySCM9U3HOPTua77y5pFKROFORz+VZR0v+z/HWsNtwJY4ZVGP7wI/mK6Io1na+dg478VwTd5XZ69KPLGyI7HQtSlbKygY5yW/kOn41fOh+KLeQyW+phVH3Yxjp+WKydP1XWdSuZYbcpaRJGxRmAZnfHA56DOMmuf8ACfiXxtf621nfNJHHEhad7iAKqkA4AI568CtlJpXRnJLmsz0Ox13WrR1h1KMsc8OOQPy4rrrK9eWHzB3Fclpl7Jqtp5skWGUYZT/CePz9q6bSWX+z29VHWoU23qaONlqZ2r63LbBwAXYdAO56Vyl1o+t+In826vpLW2/uBiBj8K3Z4zc3xRcE579P88Vz/iafWJ7PUU02XZLaRgxJt+aZsjdt7cDPuT+ucZtuxUopK7EPhCzs48LqW6Q8ksxwf6VRfTXsJRg7gDwVPH+Fc14Ug1zWLe/uNV+2woiBYDJgbpMnPGAMY6/zrb0U30zmCccI2AQSRj2706l0tSaVnsVfGUQl8P3owTiMsBXoHwS8TaPpHhHSNGculzcKZSxACszEnAzycDAzjFch4ktSdHv0xz5D/wAiaz9P01rSbQ5gNkkMaLkdcbef5VNOq4LQqWGjWfvH1AKUVHES0SFupUZqQV6aPACiiimAUUUUAFFFFABRRRQAZrj/AB3EGNix6Fyh+hxmuwrnPGdoZtLWcDPkOGPsO5/lUVFeJthpWqJnketQFvEJvO0sEcR+qs+ff+IVrxQ/aIFhCgjHeq2rRtlJj8qtISF9DgZ98HFa+iqGALAGvPkru57i00K1p4fbcdsaEHnnirbaJck7SwAPUck4/GukiiUKGXj3p2wkk/yraKdrMy5ru6MCWzFpFtHBK4OKk024CROme1GuyrAyqpyzDgCmaLbvPu79yfSseXXQ2VmrszYW2ak2T1PWtK8sW8tdpIXHGPfk9Oax9ZJtb9mQ529cV1OlOt3YxyKQQwzUw0dip7XOcfRWkXiMHPXOT+lV00ZrQE457kf59q7LycNhapX6II8N1onFvczi7aHEavb/AGiCeDu6FM/UH/GobG0Y3umWzkSFpgoI544B/nV+7YG62rg/WtLwLpBuNftPlJjtwZCSPTPP4kilCN2kW5qEJSZ6+owAKcKQUtesfNhRRRQAUUUUAFFFFABRRRQAVBd2yXlrLbv9yVCh+hGKnpKAWjueSeJdGudOtnSaF9yNuEnJVh2wR/Kq2i3RUgev/wBevVNesP7S0e7tAMtJGQv16j9QK8i0+Nkcqcgqa4q0eV6Hr4au6i13O4sphIoX2qe9mWGLI4rG0+ZkCg1oTuJQNx464pRldWNuXW7OS1q8mt2lmMXnTFCY4zxuPYVmaH4h1OxsDJfWfkzSZDIh3KPxrp76ITPnAOG4/wAmnGKGKGNSvAOScd+oqHHW6OjmTVjh7XVtSvNWujdac8doE3LMzAZPpjrXZ+CnlFlIGyIzIWjz2FQX1rDNcBwqMOMjtWlp0vlpnAA9P0qIqzuVOScbGrK6qDjr7Vg6tc7FYn0rQuJgeRzxWFqpDrjnnrRKSeiMUrGMhL3DSNkjoB1z/WvTfAmlSWNhJczwmOW4YEKwwQozjI7dSeazfhpYcXl6y8EiND9OT/Su7GB0rpoUkveZ5uLxDd6aHUUUV1nAFFFFABRRRQAUUUUAFFFFABRRRQAhxXmGvacNP125jVdquRIvuD1/XNeoVyHj6wP2WPU4xloPlkx/dJ4P4Gsa0eaOh0YWpyz16nOpIy03VNT/ALNtzM29uyqoLMT7Ac1TtdSichs8Gr5mhucswBwOBXBG6Z7O+5zMvia8vWaK0s51ZDli2FOfTn9arPqWrRZ3Wkke5cFQw646/wCFa01ipYyqrq+7IZPz59aSe7mjIXbIxHA/d5z610RtbVndRlTSsznoNQ1a1kJhspNvO7BGD3Oa1tF8Xx6hMlu8E8LtwdyHbn0z/KoZlv76RgyvHH/dC7c9q0NHsIbHe0igseg9PSsJtJ6E15Qa0Nfdxgk8Cs/UJgM+gp1zfJGp5qhpKSeI9ahsLf8AibLt1Cgck1nFOTscU5KKuz1PwZZ/YvD9sCMNIDI34/8A1sVu1HBClvDHEgwiKFA9hUterFWVjwJS5ncKKKKsQUUUUAFFFFABRRRQAUUUUAFFBrK17xNo/hi0N3rGo29lCOhlYAt7AdT+FAGoa5/xf4r8PeF9MeXxDqFvZwTKUCyHJk45AUcn8q8K8d/tVypNPZ+EbGMRL8q31zklvUiPoPbJP0FcNoejaj4wgl8deMLqXUVeTyrWCZifPfk5OOAgwcAdT6Dqm0lqXTi5SSR3Q1CWzlG7Jib7rCup0e/S5TbnJxWHp9ot/pqbgPu9MdKprJc6PPuXJXuPavKur3PdjorHeQZWVQTxmtlmgEYLRgnHeuHsPFNvKoEjBHHY8Vcn8QIiZMgx2INaKVkTKWtjX1C4QZK/gBWSGHzux6dqybnxJCFJMqfUnFYOp+KGnQwWPzM33nH3RWUrtmkZK1kWfEGtrFI0MbZbpgevatr4ceLtE8IX3neIL1LI3y+XE8gO0HOcE9vqa5TSdHad/OmyzZySfzqTWdK0nUfLtdYt/Mtc/M6na8Pq6nqMdT60UpqM0Z14OcGkfTkE8VzCk0MiSxOAyOhBDDsQR1FTV8peHPinrfwS1y58J6gh1fSLeTMQdtsiRtggofoenTPcV9BeDPiV4b8d2iTaRfp5xGWtZSFmQ+hXPP1GRXr3PCasdXRQDmjmgQUUUUAFFFFABRVa+1C0023a4vbqK2hXrJK4VfzNeUeNP2kvDPh4PBpCvq9yONynZCp/3up/AY96APXzXI+LPip4S8FxudU1eETKOLeE+ZKT6YHT8cV8s+M/j94w8VLJb/2i1jaNwYLLMYI7gt94j15x7V5nNdySsWY5J6knNAHvXjT9qnWL8yW/hqyj02EkhZ5cSSkeuPuj6c/WvE9c8Sar4gvXvNW1G4vblurzOWb6ZPAHoBWWXLcE5HYdqa+cZFAx7NmvpLwvHFrHwe0WS2UAW0pjcL6gMCf1Ga+ac5Ga9c+AXjmHTdQuPCWrXCR6bqp/cu5+WC46A57A4APuB60prmi49zWjPlkmz1Dw+CkCp04q7qOmrOuduaVbF7C4aFk2shII9DnmtWNRNHg9a8pLoz2HJXuji7nRtvHlhh6GqUuisw2iMgH0JrvTZBwRx9Khk0oseAKTugTTep54PDQaT5oyT9c1rad4bO4Zj79K66PTFjG5sZq1DCkS5xgDsKiTbL0WqMuPSktIeg965u5hE+o7CMgdc12N6+5D2ryP4meLh4fjezspsahcp1U/NCnPPsT2/OpjBykoobqKC5mcb8WNYi1DxUsMLeZ9gtIbJ5M5Lui4Yk9/mJH4Vy9pqM1jIk0E0kUiMGV1JUg9sEdKobixLNyfWgvk+w6V7fY8GUru57V4P/aR8V6CqQ38sesWygDFyf3gH/XQck/XNe1eEP2hPCHiZUhu530i8bAMdzyhPs44/PFfFqv+fYinieRehzimQfo3bXUN3Cs1vNHNEwyrxsGUj2IqavgLwr8SfE/g2fzNH1W7tlzkxBt0T/VG4P5V7R4T/aykBjh8TaQJF4DXFkcMPfY3B/76FK4WPpWiua8LfEPwx4yiV9G1e3ncjJhY7JV+qnmulyKYj4A8T+P9f8V3b3Wq6ncXDscgM3yqPQDoB6ACuceYt8xOSepPNQMx70mc9KAHliaZk05Tng01hjmgAGc5pcg9aQZ60uKAGnjjtSAkcilIyaQcfSgD1vwT8a5rdINO8Sb5okURrecs4HQb+5wMDPWvcdC1Oy1W2WayuormFxlXjYMp/KvjM4BrU0PxRrPhq48/SdRntHHUIflP1U8H8RXPUoJu6OuliXFWlsfZMkLI24cikJOK8C0f9pLXLaMR6rplnfY48yPMTY9xyCfpiuhh/aR0hlBm0K8Vsc7JFYfrzWDoSR0xxMGeqy7mYKBnJ7UrqIoizdAO/avHr79pSFVb+z9AJb+Ezz4H5AV554q+LXijxahhurxLW1P/AC72gMan6n7x/E49qPq0mwli4paanqXxE+LFjoSPY6XJHeagcg7TuSH0JI6n0A/HFeC31/c6ndy3V3K800rF2kbqT/L6VWyScnmjcTwK6adFQOKrXlUeo8tgYB5P6Ug44FIAFpa2MWxQaXNNzniloC47dg08MMVD3p2aARbtb24spVmtppIZF5VkYqR+XNd/Y/Hzx/Y2kVtHrk7pGu0M4VmI9yQSfxrzUNxTsmiwEJ4PtSY5pcZyKTP5igQ9TzihqYpwc0/r6UwDNFJR7UkApHpSCiigBCuTxxQc+n5U7g80nGKdgI+PX/P40FR3p/FGB1xSAZgU7I6d6dgelKKAG4J6/pTgAtHWj60AFBPb2pKKdgAdadTM804ZHNIANJSmkoAUU7fTCcLTgeKBjM/OaY/ysG7GnD7xpJlyhxTYhVzmnd6ZE25Afbmng0AFH+c0nvS0dQDnrS/w9Oc9aTrSjmgBAO1HalIyKQ+lAB9KT2pRxSDBNAC54oA9KPpR0oAXvRzSYo470IBf8mkNL1HFBoAZk5zTgaacA5pfpSAdk9KQ0Z4zSZzTAbMcLUqfdFV7k42/Wp1YYFIZEp5NPJDR1EDhm+lOtzuQ5piG2x+Ur6GpuMZNQQnEjj8alzk80IBwoPpRx9KQmgBelGeeKMjFANABjPNFHtQRQAYooJooAQHNL3xR0oBNAC9BSd6U0hNABRQKOvSgBGpAaVqaKAHim55pVpCcNQBFdfw/WnqRgVHd8hTSK3A5pAP/AI2+lLbfdb6miimAwf69/wDdqZepoooQDu1IetFFAC9qKKKAA0tFFADW70tFFACHrSj7tFFAAeppD1/GiigAWnCiigBhpO9FFACikb7woooAiuui/WmL90UUUgP/2Q==" alt="Portrait of Jun-Hyun Bae" width="200" height="258">
+    <div>
+      <h3>배준현</h3>
+      <p class="role">Assistant Professor, Division of Sports Rehabilitation Medicine · Director, Senior Sports Instructor Training Center</p>
+      <div class="links">
+        <a href="https://orcid.org/0000-0003-1918-9213" target="_blank" rel="noopener">ORCID 0000-0003-1918-9213</a>
+        <a href="https://www.cku.ac.kr/health/3341/subview.do" target="_blank" rel="noopener">Faculty page</a>
+      </div>
+      <div class="cols">
+        <div>
+          <span class="mono">Education</span>
+          <ul class="tl">
+            <li><span class="yr">2021</span><span class="what">Ph.D., Exercise Physiology<small>Seoul National University · Advisor: Wook Song</small></span></li>
+            <li><span class="yr">2016</span><span class="what">M.S., Exercise Physiology<small>Seoul National University</small></span></li>
+            <li><span class="yr">2013</span><span class="what">B.A.Sc., Exercise Science<small>University of Minnesota Duluth</small></span></li>
+          </ul>
+        </div>
+        <div>
+          <span class="mono">Appointments</span>
+          <ul class="tl">
+            <li><span class="yr">2025–</span><span class="what">Assistant Professor<small>Catholic Kwandong University</small></span></li>
+            <li><span class="yr">2025</span><span class="what">Research Fellow<small>Muscle Biology Laboratory, University of Michigan</small></span></li>
+            <li><span class="yr">2023–2025</span><span class="what">Postdoctoral Researcher<small>Institute of Sport Science &amp; Institute on Aging, SNU</small></span></li>
+            <li><span class="yr">2022–2024</span><span class="what">Research Professor<small>Qingdao University of Science and Technology</small></span></li>
+            <li><span class="yr">2021–2023</span><span class="what">Postdoctoral Researcher<small>Inha University</small></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section id="publications"><div class="wrap">
+  <div class="sec-head"><span class="mono">04 / Output</span><h2>Publications</h2></div>
+  <div class="metrics">
+    <div class="metric"><b>46</b><span>Peer-reviewed articles</span></div>
+    <div class="metric"><b>1</b><span>Patent application</span></div>
+    <div class="metric"><b>1</b><span>Book · AI 헬스케어</span></div>
+    <div class="metric"><b>3</b><span>Journal editor roles</span></div>
+  </div>
+  <div class="chart">
+    <div class="mono" style="margin-bottom:12px">Articles per year · click a bar to filter, click again to clear</div>
+    <div class="bars" id="bars"></div>
+    <div class="bar-x" id="barx"></div>
+  </div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Search title or journal" aria-label="Search publications">
+    <button id="lead" aria-pressed="false">First / corresponding author</button>
+    <button id="reset" type="button" class="reset" hidden>✕ Show all</button>
+    <span class="mono count" id="count"></span>
+  </div>
+  <ol class="pubs" id="pubs"></ol>
+</div></section>
+
+<section id="funding"><div class="wrap">
+  <div class="sec-head"><span class="mono">05 / Funding &amp; service</span><h2>Grants, patent and editorial work</h2></div>
+  <div class="ledger">
+    <div class="row"><span class="k">2023–2026</span><span class="v">Exercise-induced PCMT1 in skeletal muscle atrophy and cognitive impairment caused by anticancer drugs<small>NRF Basic Science Research Program · PI</small></span><span class="n">₩210,000,000</span></div>
+    <div class="row"><span class="k">2025–2026</span><span class="v">3-1 Technology Startup Hub, Startup Lab Research Support<small>CKU RISE Project Group · PI</small></span><span class="n">₩42,000,000</span></div>
+    <div class="row"><span class="k">Patent</span><span class="v">Deep learning-based obesity prediction system using physical fitness measurement data<small>Korean Patent Application P20250717KR · 2026</small></span><span class="n">KR</span></div>
+    <div class="row"><span class="k">Editor</span><span class="v">Scientific Editor, Complementary Therapies in Medicine<small>Elsevier · 2026–</small></span><span class="n"></span></div>
+    <div class="row"><span class="k">Guest editor</span><span class="v">AI-Driven Analysis of Training Adaptation and Performance in Sports<small>MDPI Sports · 2026–</small></span><span class="n"></span></div>
+    <div class="row"><span class="k">Guest editor</span><span class="v">Sports Science, Technology and Engineering<small>Frontiers in Sports and Active Living · 2025–</small></span><span class="n"></span></div>
+    <div class="row"><span class="k">Review editor</span><span class="v">Aging and Public Health<small>Frontiers in Public Health · 2023–</small></span><span class="n"></span></div>
+  </div>
+</div></section>
+
+<section id="join"><div class="wrap">
+  <div class="sec-head"><span class="mono">06 / Join</span><h2>Work with us</h2></div>
+  <div class="join">
+    <div>
+      <p>We welcome graduate students and undergraduate researchers who want to combine exercise physiology with data science. Coding experience helps but is not required; curiosity about how the body responds to training is.</p>
+      <p>연구실은 운동생리학과 데이터 과학을 함께 공부하고 싶은 대학원생과 학부 연구생을 모집합니다. 관심 있는 연구 주제와 함께 이메일로 연락해 주세요.</p>
+    </div>
+    <div class="contact">
+      <div><span class="mono">Email</span><br><span id="mail">junhyunb@cku.ac.kr</span><button class="copy" id="copy" type="button">Copy</button></div>
+      <div><span class="mono">Address</span><br>24, Beomil-ro 579beon-gil, Gangneung-si, Gangwon-do, Republic of Korea</div>
+    </div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span class="mono">© 2026 Exercise Training Science &amp; AI Laboratory</span>
+  <span class="mono">Catholic Kwandong University</span>
+</div></footer>
+
+<script>
+/* ---------- publications ---------- */
+const P=[
+[2026,"Cumulative sport-related concussions alter cortical responses to acute aerobic exercise in rugby players","Journal of Sports Medicine and Physical Fitness (accepted)",0,""],
+[2026,"Calorie restriction and exercise differentially regulate AMP-activated protein kinase across subcellular compartments in skeletal muscle from older male rats","Experimental Gerontology",0,""],
+[2026,"Explainable artificial intelligence models for accurate physical activity prediction using wearable device data","Journal of Science and Medicine in Sport",0,""],
+[2026,"A sequential deep learning model for predicting people with obesity in adults aged 18–64 using physical fitness variables","International Journal of Obesity",1,""],
+[2025,"Eccentric exercise as a therapeutic strategy to combat age-related muscle decline and mobility loss: a systematic review","Journal of Sport & Applied Science",1,"10.13106/jsas.2025.Vol9.no4.133"],
+[2025,"Safety and tolerability of HemoHIM: a randomized, placebo-controlled, double-blind, parallel clinical trial in healthy human volunteers","Journal of Microbiology and Biotechnology",1,"10.4014/jmb.2503.03041"],
+[2025,"Effects of 12-week exercise on Meteorin-like levels, inflammation, and functional capacity in older adults: Korean national aging project RCT","European Geriatric Medicine",1,"10.1007/s41999-025-01272-2"],
+[2025,"Identifying key predictors of sarcopenic obesity in Italian severely obese older adults: deep learning approach","Journal of Clinical Medicine",0,"10.3390/jcm14093069"],
+[2024,"Effects of 8-week Thercurmin Super (TS-P1) supplementation on exercise-induced oxidative stress: a randomized, double-blind, placebo-controlled trial","Integrative Medicine Research",0,"10.1016/j.imr.2024.101099"],
+[2024,"The potential role of exercise training in mitigating fertility toxicity associated with immune checkpoint inhibitors in cancer patients","The Journal of Physiological Sciences",1,"10.1186/s12576-024-00950-3"],
+[2024,"Impact of Taekwondo training on cognitive and physical function in elderly individuals: a review of randomized controlled trials","Complementary Therapies in Clinical Practice",0,"10.1016/j.ctcp.2024.101878"],
+[2024,"Effects of high-intensity interval walking on cognitive and physical functions in older adults: a randomized pilot study","Cureus",0,"10.7759/cureus.68165"],
+[2024,"Neural network model for prediction of possible sarcopenic obesity using Korean National Fitness Award data (2010–2023)","Scientific Reports",1,"10.1038/s41598-024-64742-w"],
+[2024,"Barefoot walking improves cognitive ability in adolescents","Korean Journal of Physiology & Pharmacology",0,"10.4196/kjpp.2024.28.4.295"],
+[2023,"Effect of unsupervised Kinect-based mixed reality fitness programs on health-related fitness in men during the COVID-19 pandemic","Journal of Men's Health",0,"10.22514/jomh.2023.090"],
+[2023,"Deep-learning model for prediction of physical fitness in possible sarcopenia: Korean Physical Fitness Award 2010–2023","Frontiers in Public Health",1,"10.3389/fpubh.2023.1241388"],
+[2023,"Prediction models of grip strength in adults above 65 years using Korean National Physical Fitness Award data, 2009–2019","European Geriatric Medicine",1,"10.1007/s41999-023-00817-7"],
+[2023,"Exercise training and cardiovascular health: mechanisms, benefits, and therapeutic implications in cardiovascular disease","CardioMetabolic Syndrome Journal",0,"10.51789/cmsj.2023.3.e20"],
+[2023,"The effects of 12 weeks of aerobic exercise on stress hormone and inflammation in rats","Korean Journal of Convergence Science",0,""],
+[2022,"Effects of indoor and outdoor exercise programs on cardiovascular system and muscle strength in older adult women","J. Korean Soc. Living Environ. Sys.",1,"10.21086/ksles.2022.6.29.3.289"],
+[2022,"The effect of ladder exercise on mitochondrial function in cisplatin-induced rat skeletal muscle","Korean Journal of Convergence Science",1,""],
+[2022,"Effect of herbal preparation HemoHIM on fatigue level and exercise performance: a randomized, placebo-controlled, double-blind trial","Phytomedicine Plus",0,"10.1016/j.phyplu.2022.100372"],
+[2022,"The potential roles of myokines in adipose tissue metabolism with exercise and cold exposure","International Journal of Molecular Sciences",0,"10.3390/ijms231911523"],
+[2022,"Dynapenic-abdominal obesity as an independent risk factor for chronic kidney disease in postmenopausal women","Menopause",0,"10.1097/GME.0000000000002032"],
+[2022,"Reliability and validity of the Kinect-based mixed reality device: pilot study","Asian Journal of Kinesiology",0,"10.15758/ajk.2022.24.2.2"],
+[2021,"Effects of cisplatin on mitochondrial function and autophagy-related proteins in skeletal muscle of rats","BMB Reports",1,"10.5483/BMBRep.2021.54.11.132"],
+[2021,"Effects of exercise on AKT/PGC1-α/FOXO3a pathway and muscle atrophy in cisplatin-administered rat skeletal muscle","Korean Journal of Physiology & Pharmacology",1,"10.4196/kjpp.2021.25.6.585"],
+[2021,"Exercise training attenuates ovariectomy-induced alterations in skeletal muscle remodeling, apoptotic signaling, and atrophy signaling","International Neurourology Journal",0,"10.5213/inj.2142334.167"],
+[2021,"Effects and moderators of exercise on sarcopenic components in sarcopenic elderly: a systematic review and meta-analysis","Frontiers in Medicine",0,""],
+[2021,"Exercise and restriction of sugar-sweetened beverages on muscle function and autophagy regulation in high-fat high-sucrose-fed obese mice","Diabetes & Metabolism Journal",0,"10.4093/dmj.2020.0157"],
+[2021,"Effect of masticatory movement using gum on walking and cycling: a randomized crossover design","Exercise Science",0,""],
+[2021,"Prediction equation of physical fitness age for Korean adults","Exercise Science",1,""],
+[2021,"Effects of exercise-induced beta-hydroxybutyrate on muscle function and cognitive function","Physiological Reports",1,""],
+[2021,"Hepatokines as a molecular transducer of exercise","Journal of Clinical Medicine",0,""],
+[2021,"Effects of rural community-based integrated exercise and health education programs on mobility in older adults with knee osteoarthritis","Aging Clinical and Experimental Research",0,""],
+[2020,"Exercise-induced circulating irisin level is correlated with improved cardiac function in rats","Int. J. Environ. Res. Public Health",0,""],
+[2020,"Role of exercise in skeletal muscle atrophy: a mechanistic investigation","Exercise Science",0,""],
+[2020,"Effect of exercise as adjunct therapy in tumor microenvironment","Korean Journal of Convergence Science",0,""],
+[2019,"Brain and brawn: role of exercise-induced myokines","Journal of Obesity & Metabolic Syndrome",1,""],
+[2019,"Does exercise-induced apelin affect sarcopenia? A systematic review and meta-analysis","Hormones",1,""],
+[2019,"Exercise as a potential therapeutic target for diabetic cardiomyopathy: insight into the underlying mechanisms","International Journal of Molecular Sciences",0,""],
+[2019,"Effects of exercise-induced apelin on muscle function and cognitive function in aged mice","Experimental Gerontology",0,""],
+[2019,"Comparison of a manual stopwatch and an automatic instrument for measuring 4-m gait speed in older adults","European Geriatric Medicine",0,""],
+[2019,"Potential role of exercise-induced glucose-6-phosphate isomerase in skeletal muscle function","J. Exerc. Nutrition Biochem.",0,""],
+[2019,"Exercise, the gut microbiome, and frailty","Annals of Geriatric Medicine and Research",0,""],
+[2018,"Contractile properties of single muscle fiber and their relations to whole muscle strength in Korean young males","Exercise Science",0,""]
+];
+const years=[2018,2019,2020,2021,2022,2023,2024,2025,2026];
+const state={y:null,lead:false,q:""};
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const counts=years.map(y=>P.filter(p=>p[0]===y).length), max=Math.max(...counts);
+$("bars").innerHTML=years.map((y,i)=>`<button class="bar" data-y="${y}" aria-pressed="false" aria-label="${y}: ${counts[i]} articles"><em>${counts[i]}</em><i style="height:${counts[i]/max*100}%"></i></button>`).join("");
+$("barx").innerHTML=years.map(y=>`<span>${String(y).slice(2)}</span>`).join("");
+function render(){
+  const q=state.q.toLowerCase();
+  const list=P.filter(p=>(!state.y||p[0]===state.y)&&(!state.lead||p[3])&&(!q||(p[1]+" "+p[2]).toLowerCase().includes(q)));
+  $("pubs").innerHTML=list.map(p=>`<li><span class="y">${p[0]}</span><div><div class="t">${esc(p[1])}${p[3]?'<span class="lead">LEAD</span>':""}</div><div class="m">${esc(p[2])}${p[4]?` · <a href="https://doi.org/${p[4]}" target="_blank" rel="noopener">doi:${esc(p[4])}</a>`:""}</div></div></li>`).join("")||'<li><span></span><div class="m">No matching articles.</div></li>';
+  const on=state.y||state.lead||state.q;
+  $("reset").hidden=!on;
+  $("count").textContent=(state.y?state.y+" · ":"")+`${list.length} / ${P.length}`;
+  document.querySelectorAll(".bar").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.y===state.y)));
+}
+$("bars").addEventListener("click",e=>{const b=e.target.closest(".bar");if(!b)return;const y=+b.dataset.y;state.y=state.y===y?null:y;render()});
+$("q").addEventListener("input",e=>{state.q=e.target.value;render()});
+$("lead").addEventListener("click",e=>{state.lead=!state.lead;e.currentTarget.setAttribute("aria-pressed",String(state.lead));render()});
+$("reset").addEventListener("click",()=>{state.y=null;state.lead=false;state.q="";$("q").value="";$("lead").setAttribute("aria-pressed","false");render()});
+render();
+
+$("copy").addEventListener("click",async e=>{
+  try{await navigator.clipboard.writeText($("mail").textContent);e.target.textContent="Copied"}
+  catch{const r=document.createRange();r.selectNodeContents($("mail"));const s=getSelection();s.removeAllRanges();s.addRange(r);e.target.textContent="Selected"}
+});
+
+/* ---------- fitness–fatigue (Banister) model ---------- */
+(()=>{
+  const c=$("ffm"),ctx=c.getContext("2d"),reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const N=120,T1=42,T2=7,K1=1,K2=2,week=[1,.6,1.1,0,.9,1.3,.4],meso=[1,1.1,1.2,.55];
+  let W,H,cur=0,hold=false,m;
+  function model(vol,taper){
+    const w=[],f=[],g=[],p=[];let a=0,b=0;
+    for(let d=0;d<N;d++){
+      let x=70*week[d%7]*meso[Math.floor(d/7)%4]*(1+Math.floor(d/28)*.04)*vol;
+      if(taper&&d>=N-14)x*=.4;
+      a=a*Math.exp(-1/T1)+x; b=b*Math.exp(-1/T2)+x;
+      w.push(x); f.push(K1*a); g.push(K2*b); p.push(K1*a-K2*b);
+    }
+    let pk=0;for(let d=1;d<N;d++)if(p[d]>p[pk])pk=d;
+    return {w,f,g,p,pk};
+  }
+  function recompute(){
+    m=model($("vol").value/100,$("taper").getAttribute("aria-pressed")==="true");
+    $("volv").textContent=$("vol").value+"%";
+    $("peak").textContent=`Peak form · day ${m.pk}`;
+    if(reduce||hold)cur=hold?cur:m.pk;
+    paint();
+  }
+  function size(){const r=devicePixelRatio||1;W=c.clientWidth;H=c.clientHeight;c.width=W*r;c.height=H*r;ctx.setTransform(r,0,0,r,0,0)}
+  function paint(){
+    const s=getComputedStyle(document.documentElement),v=k=>s.getPropertyValue(k).trim();
+    const L=34,R=10,Tp=12,B=26,pw=W-L-R,ph=H-Tp-B;
+    const hi=Math.max(...m.f,...m.g),lo=Math.min(0,...m.p),wmax=Math.max(...m.w);
+    const X=d=>L+d/(N-1)*pw,Y=y=>Tp+(hi-y)/(hi-lo)*ph;
+    ctx.clearRect(0,0,W,H);
+    ctx.font="10px "+v("--f-mono");ctx.fillStyle=v("--muted");ctx.strokeStyle=v("--line");ctx.lineWidth=1;
+    for(let d=0;d<N;d+=30){ctx.beginPath();ctx.moveTo(X(d),Tp);ctx.lineTo(X(d),Tp+ph);ctx.stroke();ctx.fillText("D"+d,X(d)+3,H-8)}
+    ctx.beginPath();ctx.moveTo(L,Y(0));ctx.lineTo(L+pw,Y(0));ctx.stroke();ctx.fillText("0",L-14,Y(0)+3);
+    // load bars, bottom 28% of plot
+    ctx.fillStyle=v("--grid").replace(/[\d.]+\)$/,".55)");
+    const bw=Math.max(1,pw/N-1);
+    m.w.forEach((x,d)=>{const h=x/wmax*ph*.28;ctx.fillRect(X(d)-bw/2,Tp+ph-h,bw,h)});
+    const line=(arr,col,wd)=>{ctx.strokeStyle=col;ctx.lineWidth=wd;ctx.beginPath();arr.forEach((y,d)=>d?ctx.lineTo(X(d),Y(y)):ctx.moveTo(X(d),Y(y)));ctx.stroke()};
+    line(m.g,v("--muted"),1.2);line(m.f,v("--accent"),1.8);line(m.p,v("--signal"),2.4);
+    // peak marker
+    ctx.fillStyle=v("--signal");ctx.beginPath();ctx.arc(X(m.pk),Y(m.p[m.pk]),4,0,7);ctx.fill();
+    // cursor
+    const d=Math.round(cur);ctx.strokeStyle=v("--ink");ctx.globalAlpha=.35;ctx.beginPath();ctx.moveTo(X(d),Tp);ctx.lineTo(X(d),Tp+ph);ctx.stroke();ctx.globalAlpha=1;
+    ctx.fillStyle=v("--ink");ctx.beginPath();ctx.arc(X(d),Y(m.p[d]),3,0,7);ctx.fill();
+    const sc=100/hi;
+    $("dDay").textContent=d;$("dLoad").textContent=Math.round(m.w[d]);
+    $("dFit").textContent=Math.round(m.f[d]*sc);$("dFat").textContent=Math.round(m.g[d]*sc);$("dForm").textContent=Math.round(m.p[d]*sc);
+    c._x=X;
+  }
+  function pick(e){const r=c.getBoundingClientRect(),L=34,pw=r.width-44;cur=Math.max(0,Math.min(N-1,Math.round((e.clientX-r.left-L)/pw*(N-1))));hold=true;paint()}
+  c.addEventListener("pointermove",pick);c.addEventListener("pointerdown",pick);
+  let rt;const release=()=>{clearTimeout(rt);rt=setTimeout(()=>{hold=false},1500)};
+  c.addEventListener("pointerleave",release);c.addEventListener("pointerup",release);c.addEventListener("pointercancel",release);
+  $("vol").addEventListener("input",recompute);
+  $("taper").addEventListener("click",e=>{const b=e.currentTarget;b.setAttribute("aria-pressed",String(b.getAttribute("aria-pressed")!=="true"));recompute()});
+  addEventListener("resize",()=>{size();paint()});
+  size();cur=0;recompute();if(!reduce)cur=0;
+  if(reduce){cur=m.pk;paint();return}
+  let last=performance.now();
+  (function loop(t){const dt=t-last;last=t;if(!hold){cur+=dt/90;if(cur>N-1)cur=0;paint()}requestAnimationFrame(loop)})(last);
+})();
+</script>
+
+</body>
+</html>
